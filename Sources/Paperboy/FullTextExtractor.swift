@@ -53,6 +53,11 @@ final class FullTextExtractor: NSObject, WKNavigationDelegate {
             .filter(el => !el.querySelector(blockSelector));
         const text = el => el.textContent.trim();
 
+        // 0. Szerzői, forrás-„névjegyek”: listaelem, amelyben csak egy kép és egy rövid név van.
+        for (const li of Array.from(content.querySelectorAll("li"))) {
+            if (li.querySelector("img") && text(li).length < 40) li.remove();
+        }
+
         // 1. Többször előforduló rövid blokkok (pl. „Kövess minket Facebookon!”).
         const counts = new Map();
         for (const el of blocks()) {
@@ -71,7 +76,7 @@ final class FullTextExtractor: NSObject, WKNavigationDelegate {
         }
 
         // 3. Üres blokkok, amelyek csak térközt adnának.
-        for (const el of Array.from(content.querySelectorAll("p, div, span")).reverse()) {
+        for (const el of Array.from(content.querySelectorAll("p, div, span, li, ul, ol")).reverse()) {
             if (!text(el) && !el.querySelector("img, picture, figure")) el.remove();
         }
 

@@ -123,10 +123,16 @@ final class FeedParser: NSObject, XMLParserDelegate {
             title: title.isEmpty ? "(cím nélkül)" : title,
             link: link,
             date: DateParser.parse(f["pubdate"] ?? f["published"] ?? f["updated"] ?? f["dc:date"]),
-            author: (f["dc:creator"] ?? f["name"] ?? f["author"])?.decodingHTMLEntities,
+            author: (f["dc:creator"] ?? f["name"] ?? f["author"]).map { authorName($0.decodingHTMLEntities) },
             html: html,
             imageURL: itemImage
         )
+    }
+
+    /// Az RSS 2.0 `<author>` mezője „e-mail (Név)” alakú; ilyenkor csak a név kell.
+    private func authorName(_ author: String) -> String {
+        guard let match = author.firstMatch(of: #/^\S+@\S+\s*\((.+)\)$/#) else { return author }
+        return String(match.1)
     }
 
     private func isImage(_ attributes: [String: String]) -> Bool {
