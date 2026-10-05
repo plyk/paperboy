@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>RemarkableFeeds</string>
+	<key>CFBundleIdentifier</key>
+	<string>hu.spartancode.RemarkableFeeds</string>
+	<key>CFBundleName</key>
+	<string>Paperboy</string>
+	<key>CFBundleDisplayName</key>
+	<string>Paperboy</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>hu</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.news</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>A reMarkable tablet USB-kapcsolaton keresztül (10.11.99.1) a helyi hálózaton érhető el.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- A tablet USB-felülete és sok hírcsatorna csak sima HTTP-t használ. -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
