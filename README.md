@@ -26,7 +26,7 @@ Kedvenc hírforrásaidból minden nap egy olvasható, jegyzetelhető PDF-kiadás
 - A képek e-ink-barát módon kerülnek be: szürkeárnyalatosan, a tablet felbontására kicsinyítve, képaláírásokkal. A követőpixeleket, ikonokat és szerzői fotókat kiszűri.
 
 **Automatikus szinkronizálás**
-- A tablet csatlakoztatását magától észleli, és feltölti az aznapi kiadásokat a tablet megadott mappájába.
+- A tablet csatlakoztatását magától észleli, és feltölti az aznapi kiadásokat a tablet megadott mappájába – USB web interface-en vagy SSH-n (lásd lent).
 - Alapból naponta egyszer, reggel 6-tól; beállítható minden csatlakozásra is.
 - A háttérben, a menüsorban fut; indulhat bejelentkezéskor, és értesítést küld, amikor friss hírek kerültek fel.
 - Előnézet: a kiadások tablet nélkül, helyben is elkészíthetők és megnézhetők.
@@ -58,6 +58,19 @@ Fejlesztéshez `swift run` is elég.
 3. **Próbáld ki** az **Előnézet** gombbal, majd dugd be és oldd fel a tabletet – a szinkronizálás magától elindul.
 4. A **Beállításokban** (⌘,) állítható a célmappa, a cikkek száma, a képek, a teljes szöveg és az automatikus frissítés, valamint az indítás bejelentkezéskor.
 
+## Feltöltés SSH-n
+
+Az USB web interface helyett a Paperboy SSH-n is tud feltölteni (Beállítások → reMarkable → Feltöltés módja). Ilyenkor:
+
+- a célmappát maga hozza létre, a dokumentumnevek `.pdf` nélkül jelennek meg, és nem kell bekapcsolni a web interface-t;
+- Wi-Fi-n is működhet, ha a tableten engedélyezve van az SSH Wi-Fi-n, és a tablet címét megadod;
+- bekapcsolható, hogy a régi kiadások egy idő után a Kukába kerüljenek – csak a Paperboy által létrehozott, **jegyzet nélküli** kiadások, és a Kukából visszaállíthatók;
+- feltöltés után a tablet felülete pár másodpercre újraindul, hogy betöltse az új dokumentumokat.
+
+Beállítás: a root jelszót a tableten a Beállítások → Általános → Súgó → Névjegy → Szerzői jogok és licencek oldalon, a *GPLv3 Compliance* résznél találod. A Beállításokban egyszer megadva a Paperboy feltelepíti vele a saját SSH-kulcsát (`~/Library/Application Support/Paperboy/ssh`), a jelszót nem tárolja. reMarkable Paper Pro-n az SSH-hoz [fejlesztői mód](https://support.remarkable.com/s/article/Developer-mode) kell, ami gyári visszaállítással jár.
+
+Az SSH-s feltöltés közvetlenül a tablet dokumentumtárába ír (nem hivatalos felület), ezért egy jövőbeli firmware-frissítés után érdemes ellenőrizni.
+
 ## Verziók és kiadások
 
 A verziók [szemantikus verziózást](https://semver.org/lang/hu/) követnek, és `vX.Y.Z` git-címkék jelölik őket. A build script a legutóbbi címkéből írja be a verziót az alkalmazásba, a build-szám pedig a commitok száma; mindkettő látszik a Beállítások alján és a Névjegy ablakban.
@@ -72,7 +85,8 @@ A script létrehozza a `v0.2.0` címkét, elkészíti az alkalmazást, és GitHu
 
 ## Tudnivalók
 
-- A feltöltés a tablet **USB web interface**-én keresztül történik (alapból `10.11.99.1`, a Beállításokban átírható), felhő és fiók nélkül. Ez a felület nem tud mappát létrehozni, és meglévő dokumentumot sem tud felülírni – ezért kell a célmappát előre létrehozni, és ezért kap egy nap második kiadása `(2)` jelölést.
+- Alapból a tablet **USB web interface**-én keresztül tölt fel (`10.11.99.1`, a Beállításokban átírható), felhő és fiók nélkül. Ez a felület nem tud mappát létrehozni, ezért ott a célmappát előre létre kell hozni.
+- A már feltöltött kiadásokat a Paperboy sosem írja felül, hogy a kézzel írt jegyzetek ne vesszenek el; egy nap második kiadása ezért `(2)` jelölést kap.
 - Fizetős vagy bejelentkezéshez kötött cikkeknél a hírcsatorna kivonata marad.
 - Az adatok helye: `~/Library/Application Support/Paperboy/library.json`.
 

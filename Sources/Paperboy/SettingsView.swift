@@ -7,21 +7,39 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
+    @State private var rootPassword = ""
+    @State private var isInstallingKey = false
+    @State private var keyResult: String?
+    @State private var hasSSHKey = (try? SSHKeys.prepare().hasKey) ?? false
 
     var body: some View {
         Form {
             Section("reMarkable") {
+                Picker("Feltöltés módja", selection: $store.settings.transport) {
+                    Text("USB web interface").tag(TransportKind.usbWeb)
+                    Text("SSH").tag(TransportKind.ssh)
+                }
+                .pickerStyle(.segmented)
+                Text(store.settings.transport == .usbWeb
+                     ? "Egyszerű, jelszó nélküli mód USB-kábelen. A tableten be kell kapcsolni a Beállítások → Tárhely → USB web interface opciót."
+                     : "Közvetlen hozzáférés root jelszóval: a célmappát a Paperboy hozza létre, a dokumentumnevek .pdf nélkül jelennek meg, és Wi-Fi-n is működhet. Feltöltés után a tablet felülete pár másodpercre újraindul.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 HStack {
                     TextField("A tablet címe", text: $store.settings.tabletHost, prompt: Text(RemarkableUSB.defaultHost))
                     if store.settings.tabletHost != RemarkableUSB.defaultHost {
                         Button("Alapérték") { store.settings.tabletHost = RemarkableUSB.defaultHost }
                     }
                 }
-                Text("USB-kábelen a tablet címe mindig \(RemarkableUSB.defaultHost). Akkor írd át, ha a tablet más címen érhető el.")
+                Text("USB-kábelen a tablet címe mindig \(RemarkableUSB.defaultHost). SSH-n Wi-Fi-n keresztül a tablet hálózati címét add meg (a tablet Névjegy oldalán látható).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
                 TextField("Célmappa", text: $store.settings.targetFolder, prompt: Text("pl. Hírek"))
-                Text("A mappának léteznie kell a tableten, mert az USB-felületen keresztül nem lehet mappát létrehozni. Almappát így adhatsz meg: Hírek/Reggeli. Ha üresen hagyod, a gyökérbe kerül.")
+                Text(store.settings.transport == .usbWeb
+                     ? "A mappának léteznie kell a tableten, mert az USB-felületen keresztül nem lehet mappát létrehozni. Almappa: Hírek/Reggeli. Üresen hagyva a gyökérbe kerül."
+                     : "Ha még nincs ilyen mappa, a Paperboy létrehozza. Almappa: Hírek/Reggeli. Üresen hagyva a gyökérbe kerül.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack {
@@ -29,6 +47,31 @@ struct SettingsView: View {
                         .disabled(isTesting)
                     if isTesting { ProgressView().controlSize(.small) }
                     if let testResult { Text(testResult).font(.callout) }
+                }
+            }
+
+            if store.settings.transport == .ssh {
+                Section("SSH-hozzáférés") {
+                    LabeledContent("Paperboy-kulcs", value: hasSSHKey ? "létrehozva" : "még nincs")
+                    SecureField("Root jelszó", text: $rootPassword, prompt: Text("a tablet Névjegy oldaláról"))
+                    HStack {
+                        Button("Kulcs telepítése a tabletre") { Task { await installKey() } }
+                            .disabled(rootPassword.isEmpty || isInstallingKey)
+                        if isInstallingKey { ProgressView().controlSize(.small) }
+                        if let keyResult { Text(keyResult).font(.callout) }
+                    }
+                    Text("A jelszót a tableten a Beállítások → Általános → Súgó → Névjegy → Szerzői jogok és licencek oldalon, a GPLv3 Compliance résznél találod. Csak egyszer kell: a Paperboy a saját kulcsát telepíti vele, a jelszót nem tárolja. Paper Pro esetén az SSH-hoz fejlesztői mód kell.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Toggle(isOn: $store.settings.trashOldEditions) {
+                        Text("Régi kiadások áthelyezése a Kukába")
+                        Text("Csak a Paperboy által létrehozott, jegyzet nélküli kiadásokat érinti; a Kukából visszaállíthatók.")
+                    }
+                    if store.settings.trashOldEditions {
+                        Stepper("\(store.settings.keepEditionsDays) napnál régebbiek",
+                                value: $store.settings.keepEditionsDays, in: 1...60)
+                    }
                 }
             }
 
@@ -115,11 +158,26 @@ struct SettingsView: View {
         isTesting = true
         defer { isTesting = false }
         testResult = nil
+        let transport = store.settings.makeTransport()
         do {
-            try await RemarkableUSB(host: store.settings.tabletHost).enterFolder(path: store.settings.targetFolder)
-            testResult = "✓ A tablet elérhető, a célmappa megvan."
+            guard await transport.isReachable() else { throw transport.unreachableError }
+            testResult = try await transport.test(folder: store.settings.targetFolder)
         } catch {
             testResult = error.localizedDescription
         }
+    }
+
+    private func installKey() async {
+        isInstallingKey = true
+        defer { isInstallingKey = false }
+        keyResult = nil
+        do {
+            try await RemarkableSSH.installKey(host: store.settings.tabletHost, password: rootPassword)
+            rootPassword = ""
+            keyResult = "✓ Kulcs telepítve, a jelszóra többé nincs szükség."
+        } catch {
+            keyResult = error.localizedDescription
+        }
+        hasSSHKey = (try? SSHKeys.prepare().hasKey) ?? false
     }
 }

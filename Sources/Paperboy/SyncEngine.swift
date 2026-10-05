@@ -32,7 +32,6 @@ final class SyncEngine: ObservableObject {
     @Published private(set) var log: [LogLine] = []
 
     private let store: FeedStore
-    private var usb: RemarkableUSB { RemarkableUSB(host: store.settings.tabletHost) }
     private let extractor = FullTextExtractor()
     /// Az előnézet és a szinkronizálás között ne kelljen ugyanazt újra letölteni.
     private var fullTextCache: [URL: FullTextExtractor.Extracted] = [:]
@@ -94,11 +93,13 @@ final class SyncEngine: ObservableObject {
 
         do {
             let folder = store.settings.targetFolder
+            var transport: TabletTransport?
             if mode == .upload {
-                note("Kapcsolódás a tablethez…")
-                let usb = usb
-                guard await usb.isReachable() else { throw RemarkableUSB.USBError.unreachable(host: usb.host) }
-                try await usb.enterFolder(path: folder)
+                let connection = store.settings.makeTransport()
+                note("Kapcsolódás a tablethez (\(store.settings.transport == .ssh ? "SSH" : "USB web interface"), \(connection.host))…")
+                guard await connection.isReachable() else { throw connection.unreachableError }
+                try await connection.prepare(folder: folder)
+                transport = connection
                 note("Célmappa: \(folder.isEmpty ? "(gyökér)" : folder)")
             }
 
@@ -106,7 +107,10 @@ final class SyncEngine: ObservableObject {
             var editions = buildEditions(from: articles, includeUploaded: mode == .preview)
             guard !editions.isEmpty else {
                 note("Nincs új cikk.")
-                if mode == .upload { store.syncState.lastSync = Date() }
+                if let transport {
+                    try await finishUpload(transport)
+                    store.syncState.lastSync = Date()
+                }
                 return summary
             }
 
@@ -131,8 +135,11 @@ final class SyncEngine: ObservableObject {
 
                 switch mode {
                 case .upload:
-                    try await usb.enterFolder(path: folder)
-                    try await usb.upload(pdf, filename: "\(name).pdf")
+                    guard let transport else { break }
+                    if let id = try await transport.upload(pdf, name: name) {
+                        store.syncState.createdDocuments = (store.syncState.createdDocuments ?? [:])
+                            .merging([id: now]) { _, new in new }
+                    }
                     for article in edition.articles {
                         store.syncState.uploaded["\(edition.tag)|\(article.id)"] = now
                     }
@@ -147,7 +154,8 @@ final class SyncEngine: ObservableObject {
                 note("✓ \(name) – \(edition.articles.count) cikk")
             }
 
-            if mode == .upload {
+            if let transport {
+                try await finishUpload(transport)
                 pruneHistory(today: day)
                 store.syncState.lastSync = now
                 note("Kész.")
@@ -172,6 +180,22 @@ final class SyncEngine: ObservableObject {
             content.body = body
             try? await center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
         }
+    }
+
+    /// SSH-n a régi kiadások Kukába helyezése (ha be van kapcsolva), majd a feltöltés lezárása.
+    private func finishUpload(_ transport: TabletTransport) async throws {
+        if let ssh = transport as? RemarkableSSH, store.settings.trashOldEditions {
+            let limit = Date().addingTimeInterval(-Double(store.settings.keepEditionsDays) * 86_400)
+            let old = (store.syncState.createdDocuments ?? [:]).filter { $0.value < limit }.map(\.key)
+            if !old.isEmpty {
+                let result = try await ssh.moveToTrash(old)
+                for id in result.handled { store.syncState.createdDocuments?[id] = nil }
+                if result.trashed > 0 { note("\(result.trashed) régi kiadás a Kukába került.") }
+                if result.annotated > 0 { note("\(result.annotated) régi kiadás maradt a helyén, mert jegyzet van benne.") }
+            }
+        }
+        if transport is RemarkableSSH { note("A tablet felületének frissítése…") }
+        try await transport.finish()
     }
 
     /// Lekéri az összes aktív hírforrást, és frissíti az állapotukat.

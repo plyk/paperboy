@@ -3,7 +3,7 @@ import Foundation
 /// A reMarkable USB web interface kliense (Beállítások → Tárhely → USB web interface).
 /// A feltöltés abba a mappába kerül, amelyet legutóbb listáztunk, ezért feltöltés előtt
 /// mindig belépünk a célmappába. Mappát létrehozni ezen a felületen nem lehet.
-struct RemarkableUSB {
+final class RemarkableUSB {
     struct Item {
         let id: String
         let name: String
@@ -34,6 +34,8 @@ struct RemarkableUSB {
 
     let host: String
     private var base: String { "http://\(host)" }
+    /// A `prepare(folder:)` óta használt célmappa.
+    var folder = ""
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15

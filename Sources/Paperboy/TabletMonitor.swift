@@ -14,7 +14,6 @@ final class TabletMonitor: ObservableObject {
     var onAvailable: ((_ newlyConnected: Bool) -> Void)?
 
     private let store: FeedStore
-    private var usb: RemarkableUSB { RemarkableUSB(host: store.settings.tabletHost) }
     private let pathMonitor = NWPathMonitor()
     private var timer: Timer?
     private var isChecking = false
@@ -43,7 +42,7 @@ final class TabletMonitor: ObservableObject {
         isChecking = true
         defer { isChecking = false }
 
-        if await usb.isReachable() {
+        if await store.settings.makeTransport().isReachable() {
             failures = 0
             let newlyConnected = !isConnected
             isConnected = true

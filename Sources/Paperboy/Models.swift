@@ -34,6 +34,10 @@ struct AppSettings: Codable, Equatable {
     var targetFolder = "Hírek"
     /// A tablet címe; USB-kábelen mindig 10.11.99.1.
     var tabletHost = RemarkableUSB.defaultHost
+    var transport = TransportKind.usbWeb
+    /// Csak SSH-n: a régi, jegyzet nélküli kiadások áthelyezése a Kukába.
+    var trashOldEditions = false
+    var keepEditionsDays = 7
     var maxArticlesPerFeed = 10
     var maxAgeDays = 2
     var includeImages = true
@@ -56,6 +60,9 @@ extension AppSettings {
         let defaults = AppSettings()
         targetFolder = try container.decodeIfPresent(String.self, forKey: .targetFolder) ?? defaults.targetFolder
         tabletHost = try container.decodeIfPresent(String.self, forKey: .tabletHost) ?? defaults.tabletHost
+        transport = try container.decodeIfPresent(TransportKind.self, forKey: .transport) ?? defaults.transport
+        trashOldEditions = try container.decodeIfPresent(Bool.self, forKey: .trashOldEditions) ?? defaults.trashOldEditions
+        keepEditionsDays = try container.decodeIfPresent(Int.self, forKey: .keepEditionsDays) ?? defaults.keepEditionsDays
         maxArticlesPerFeed = try container.decodeIfPresent(Int.self, forKey: .maxArticlesPerFeed) ?? defaults.maxArticlesPerFeed
         maxAgeDays = try container.decodeIfPresent(Int.self, forKey: .maxAgeDays) ?? defaults.maxAgeDays
         includeImages = try container.decodeIfPresent(Bool.self, forKey: .includeImages) ?? defaults.includeImages
@@ -73,6 +80,8 @@ struct SyncState: Codable {
     var editions: [String: Int] = [:]
     /// Utolsó sikeres feltöltés a tabletre.
     var lastSync: Date?
+    /// SSH-n létrehozott kiadások a tableten: azonosító → létrehozás ideje (a régiek takarításához).
+    var createdDocuments: [String: Date]?
 }
 
 struct Article: Identifiable {
