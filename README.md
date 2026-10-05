@@ -26,7 +26,7 @@ Kedvenc hírforrásaidból minden nap egy olvasható, jegyzetelhető PDF-kiadás
 - A képek e-ink-barát módon kerülnek be: szürkeárnyalatosan, a tablet felbontására kicsinyítve, képaláírásokkal. A követőpixeleket, ikonokat és szerzői fotókat kiszűri.
 
 **Automatikus szinkronizálás**
-- A tablet csatlakoztatását magától észleli, és feltölti az aznapi kiadásokat a tablet megadott mappájába – USB web interface-en vagy SSH-n (lásd lent).
+- A tablet csatlakoztatását magától észleli, és feltölti az aznapi kiadásokat a tablet megadott mappájába – USB web interface-en (ajánlott) vagy SSH-n (lásd [Feltöltési módok](#feltöltési-módok)).
 - Alapból naponta egyszer, reggel 6-tól; beállítható minden csatlakozásra is.
 - A háttérben, a menüsorban fut; indulhat bejelentkezéskor, és értesítést küld, amikor friss hírek kerültek fel.
 - Előnézet: a kiadások tablet nélkül, helyben is elkészíthetők és megnézhetők.
@@ -58,18 +58,35 @@ Fejlesztéshez `swift run` is elég.
 3. **Próbáld ki** az **Előnézet** gombbal, majd dugd be és oldd fel a tabletet – a szinkronizálás magától elindul.
 4. A **Beállításokban** (⌘,) állítható a célmappa, a cikkek száma, a képek, a teljes szöveg és az automatikus frissítés, valamint az indítás bejelentkezéskor.
 
-## Feltöltés SSH-n
+## Feltöltési módok
 
-Az USB web interface helyett a Paperboy SSH-n is tud feltölteni (Beállítások → reMarkable → Feltöltés módja). Ilyenkor:
+> [!IMPORTANT]
+> **Az ajánlott mód az USB web interface.** Ilyenkor a PDF-et maga a tablet felülete veszi át – ugyanúgy, mint a hivatalos alkalmazásnál vagy a felhős szinkronnál –, ezért a kiadás azonnal megjelenik, és a tablet felülete soha nem indul újra. Az SSH-s mód csak akkor érdemes, ha kifejezetten kell valamelyik előnye (lásd lent), és elfogadható, hogy minden feltöltés után pár másodpercre újraindul a tablet felülete.
+
+### USB web interface (ajánlott)
+
+- Kábelen működik, jelszó nélkül; a tableten be kell kapcsolni: Beállítások → Tárhely → USB web interface.
+- Az új kiadások újraindítás nélkül, azonnal megjelennek.
+- A célmappát egyszer kézzel kell létrehozni a tableten, mert ez a felület mappát nem tud létrehozni.
+
+### SSH
+
+A Paperboy SSH-n is tud feltölteni (Beállítások → reMarkable → Feltöltés módja). Előnyei:
 
 - a célmappát maga hozza létre, a dokumentumnevek `.pdf` nélkül jelennek meg, és nem kell bekapcsolni a web interface-t;
 - Wi-Fi-n is működhet, ha a tableten engedélyezve van az SSH Wi-Fi-n, és a tablet címét megadod;
-- bekapcsolható, hogy a régi kiadások egy idő után a Kukába kerüljenek – csak a Paperboy által létrehozott, **jegyzet nélküli** kiadások, és a Kukából visszaállíthatók;
-- feltöltés után a tablet felülete pár másodpercre újraindul, hogy betöltse az új dokumentumokat.
+- bekapcsolható, hogy a régi kiadások egy idő után a Kukába kerüljenek – csak a Paperboy által létrehozott, **jegyzet nélküli** kiadások, és a Kukából visszaállíthatók.
+
+**Miért indul újra a tablet felülete?** SSH-n a Paperboy közvetlenül a tablet dokumentumtárába írja a fájlokat. A tablet felülete (`xochitl`) ezt a tárat csak induláskor olvassa be, a változásait nem figyeli – így az új dokumentumok csak a felület újraindítása (kb. 7–10 másodperc) után látszanak. Ez nem a PDF-feltöltés sajátja, hanem a közvetlen fájlírásé: minden SSH-s, fájlmásolással dolgozó eszköz ugyanígy működik. A tablet maga nem indul újra, csak a felülete.
+
+Ezért SSH-n:
+
+- **kézi szinkronizálásnál** a felület azonnal újraindul;
+- **automatikus szinkronizálásnál** a kiadások felkerülnek, de a felület csak jóváhagyásra indul újra: értesítés érkezik „Újraindítás most” gombbal, és a menüsorból is elindítható. A régi kiadások Kukába helyezése is csak ilyenkor történik.
 
 Beállítás: a root jelszót a tableten a Beállítások → Általános → Súgó → Névjegy → Szerzői jogok és licencek oldalon, a *GPLv3 Compliance* résznél találod. A Beállításokban egyszer megadva a Paperboy feltelepíti vele a saját SSH-kulcsát (`~/Library/Application Support/Paperboy/ssh`), a jelszót nem tárolja. reMarkable Paper Pro-n az SSH-hoz [fejlesztői mód](https://support.remarkable.com/s/article/Developer-mode) kell, ami gyári visszaállítással jár.
 
-Az SSH-s feltöltés közvetlenül a tablet dokumentumtárába ír (nem hivatalos felület), ezért egy jövőbeli firmware-frissítés után érdemes ellenőrizni.
+Az SSH-s feltöltés nem hivatalos felületen át, közvetlenül a tablet dokumentumtárába ír, ezért egy jövőbeli firmware-frissítés után érdemes ellenőrizni.
 
 ## Verziók és kiadások
 
