@@ -10,7 +10,7 @@ struct PaperboyApp: App {
     init() {
         let store = FeedStore()
         let sync = SyncEngine(store: store)
-        let tablet = TabletMonitor()
+        let tablet = TabletMonitor(store: store)
         tablet.onAvailable = { [weak sync] newlyConnected in
             Task { await sync?.autoSync(newlyConnected: newlyConnected) }
         }

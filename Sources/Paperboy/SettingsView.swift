@@ -11,6 +11,15 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("reMarkable") {
+                HStack {
+                    TextField("A tablet címe", text: $store.settings.tabletHost, prompt: Text(RemarkableUSB.defaultHost))
+                    if store.settings.tabletHost != RemarkableUSB.defaultHost {
+                        Button("Alapérték") { store.settings.tabletHost = RemarkableUSB.defaultHost }
+                    }
+                }
+                Text("USB-kábelen a tablet címe mindig \(RemarkableUSB.defaultHost). Akkor írd át, ha a tablet más címen érhető el.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 TextField("Célmappa", text: $store.settings.targetFolder, prompt: Text("pl. Hírek"))
                 Text("A mappának léteznie kell a tableten, mert az USB-felületen keresztül nem lehet mappát létrehozni. Almappát így adhatsz meg: Hírek/Reggeli. Ha üresen hagyod, a gyökérbe kerül.")
                     .font(.caption)
@@ -107,7 +116,7 @@ struct SettingsView: View {
         defer { isTesting = false }
         testResult = nil
         do {
-            try await RemarkableUSB().enterFolder(path: store.settings.targetFolder)
+            try await RemarkableUSB(host: store.settings.tabletHost).enterFolder(path: store.settings.targetFolder)
             testResult = "✓ A tablet elérhető, a célmappa megvan."
         } catch {
             testResult = error.localizedDescription

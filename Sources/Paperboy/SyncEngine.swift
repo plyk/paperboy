@@ -32,7 +32,7 @@ final class SyncEngine: ObservableObject {
     @Published private(set) var log: [LogLine] = []
 
     private let store: FeedStore
-    private let usb = RemarkableUSB()
+    private var usb: RemarkableUSB { RemarkableUSB(host: store.settings.tabletHost) }
     private let extractor = FullTextExtractor()
     /// Az előnézet és a szinkronizálás között ne kelljen ugyanazt újra letölteni.
     private var fullTextCache: [URL: FullTextExtractor.Extracted] = [:]
@@ -96,7 +96,8 @@ final class SyncEngine: ObservableObject {
             let folder = store.settings.targetFolder
             if mode == .upload {
                 note("Kapcsolódás a tablethez…")
-                guard await usb.isReachable() else { throw RemarkableUSB.USBError.unreachable }
+                let usb = usb
+                guard await usb.isReachable() else { throw RemarkableUSB.USBError.unreachable(host: usb.host) }
                 try await usb.enterFolder(path: folder)
                 note("Célmappa: \(folder.isEmpty ? "(gyökér)" : folder)")
             }

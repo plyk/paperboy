@@ -10,16 +10,18 @@ struct RemarkableUSB {
         let isFolder: Bool
     }
 
+    static let defaultHost = "10.11.99.1"
+
     enum USBError: LocalizedError {
-        case unreachable
+        case unreachable(host: String)
         case folderNotFound(String)
         case http(Int)
         case badResponse
 
         var errorDescription: String? {
             switch self {
-            case .unreachable:
-                "A tablet nem érhető el a 10.11.99.1 címen. Csatlakoztasd USB-n, oldd fel, és kapcsold be a Beállítások → Tárhely → USB web interface opciót."
+            case .unreachable(let host):
+                "A tablet nem érhető el a(z) \(host) címen. Csatlakoztasd USB-n, oldd fel, és kapcsold be a Beállítások → Tárhely → USB web interface opciót."
             case .folderNotFound(let name):
                 "A(z) „\(name)” mappa nem létezik a tableten. Hozd létre a tableten, mert USB-n keresztül nem lehet mappát létrehozni."
             case .http(let code):
@@ -30,12 +32,18 @@ struct RemarkableUSB {
         }
     }
 
-    private let base = "http://10.11.99.1"
+    let host: String
+    private var base: String { "http://\(host)" }
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
         return URLSession(configuration: configuration)
     }()
+
+    init(host: String) {
+        let trimmed = host.trimmingCharacters(in: .whitespaces)
+        self.host = trimmed.isEmpty ? Self.defaultHost : trimmed
+    }
 
     func isReachable() async -> Bool {
         (try? await list(folderID: nil, timeout: 3)) != nil
@@ -51,7 +59,7 @@ struct RemarkableUSB {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw USBError.unreachable
+            throw USBError.unreachable(host: host)
         }
         try check(response)
         guard let entries = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {

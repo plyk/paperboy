@@ -72,7 +72,7 @@ A script létrehozza a `v0.2.0` címkét, elkészíti az alkalmazást, és GitHu
 
 ## Tudnivalók
 
-- A feltöltés a tablet **USB web interface**-én keresztül történik (`10.11.99.1`), felhő és fiók nélkül. Ez a felület nem tud mappát létrehozni, és meglévő dokumentumot sem tud felülírni – ezért kell a célmappát előre létrehozni, és ezért kap egy nap második kiadása `(2)` jelölést.
+- A feltöltés a tablet **USB web interface**-én keresztül történik (alapból `10.11.99.1`, a Beállításokban átírható), felhő és fiók nélkül. Ez a felület nem tud mappát létrehozni, és meglévő dokumentumot sem tud felülírni – ezért kell a célmappát előre létrehozni, és ezért kap egy nap második kiadása `(2)` jelölést.
 - Fizetős vagy bejelentkezéshez kötött cikkeknél a hírcsatorna kivonata marad.
 - Az adatok helye: `~/Library/Application Support/Paperboy/library.json`.
 

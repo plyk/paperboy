@@ -13,13 +13,18 @@ final class TabletMonitor: ObservableObject {
     /// (A napi szinkron akkor is elindulhat, ha a tablet már korábban be volt dugva.)
     var onAvailable: ((_ newlyConnected: Bool) -> Void)?
 
-    private let usb = RemarkableUSB()
+    private let store: FeedStore
+    private var usb: RemarkableUSB { RemarkableUSB(host: store.settings.tabletHost) }
     private let pathMonitor = NWPathMonitor()
     private var timer: Timer?
     private var isChecking = false
     /// Szinkronizálás közben a tablet lassabban válaszolhat; egyetlen kihagyás miatt még nem
     /// tekintjük leválasztottnak (különben visszacsatlakozáskor újra elindulna a szinkron).
     private var failures = 0
+
+    init(store: FeedStore) {
+        self.store = store
+    }
 
     func start() {
         guard timer == nil else { return }

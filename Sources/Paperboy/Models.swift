@@ -32,6 +32,8 @@ extension Feed {
 struct AppSettings: Codable, Equatable {
     /// Mappa a tableten, pl. "Hírek" vagy "Hírek/Reggeli". Üres = gyökér.
     var targetFolder = "Hírek"
+    /// A tablet címe; USB-kábelen mindig 10.11.99.1.
+    var tabletHost = RemarkableUSB.defaultHost
     var maxArticlesPerFeed = 10
     var maxAgeDays = 2
     var includeImages = true
@@ -53,6 +55,7 @@ extension AppSettings {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = AppSettings()
         targetFolder = try container.decodeIfPresent(String.self, forKey: .targetFolder) ?? defaults.targetFolder
+        tabletHost = try container.decodeIfPresent(String.self, forKey: .tabletHost) ?? defaults.tabletHost
         maxArticlesPerFeed = try container.decodeIfPresent(Int.self, forKey: .maxArticlesPerFeed) ?? defaults.maxArticlesPerFeed
         maxAgeDays = try container.decodeIfPresent(Int.self, forKey: .maxAgeDays) ?? defaults.maxAgeDays
         includeImages = try container.decodeIfPresent(Bool.self, forKey: .includeImages) ?? defaults.includeImages
