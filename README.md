@@ -1,28 +1,65 @@
-<p align="center"><img src="Design/paperboy-icon.png" width="160" alt="Paperboy"></p>
+<p align="center"><img src="Design/paperboy-icon.png" width="140" alt="Paperboy"></p>
 
-# Paperboy
+<h1 align="center">Paperboy</h1>
 
-Reggeli újság a reMarkable tabletre: macOS-alkalmazás, amely címkézett RSS/Atom hírforrásokból napi PDF-kiadásokat készít, és USB-n keresztül feltölti őket a reMarkable tablet egy megadott mappájába.
+<p align="center"><b>Reggeli újság a reMarkable tabletre.</b><br>
+Kedvenc hírforrásaidból minden nap egy olvasható, jegyzetelhető PDF-kiadás – magától kerül fel a tabletre, amikor bedugod.</p>
 
-## Build
+<p align="center"><img src="Design/screenshot-app.png" width="820" alt="A Paperboy főablaka"></p>
+
+## Mit tud?
+
+**Hírforrások címkékkel**
+- RSS- és Atom-hírcsatornák kezelése egy listában, tetszőleges címkékkel (pl. *Napi*, *Tech*). Egy forrás több címkéhez is tartozhat.
+- Új forrásnál az „Ellenőrzés” lekéri a csatornát, kitölti a nevét, és megmondja, hány cikket talált.
+- Forrásonként ki-be kapcsolható; az oldalsávban címke szerint szűrhető.
+
+**Napi kiadás címkénként**
+- Minden címkéből egy PDF készül `Napi – 2026-10-05` néven, a reMarkable képernyőjére méretezve.
+- A címoldalon kattintható tartalomjegyzék, minden cikk új oldalon kezdődik, és mindegyikről vissza lehet ugrani a tartalomhoz.
+- Csak a még fel nem töltött cikkek kerülnek bele, így nincs ismétlődés. Beállítható, hány cikk és milyen régi hírek kerüljenek be.
+
+<p align="center"><img src="Design/screenshot-edition.png" width="720" alt="Egy napi kiadás címoldala és egy cikk oldala"></p>
+
+**Teljes cikkek, képekkel**
+- Sok hírcsatorna csak egy-két mondatos kivonatot ad. Forrásonként bekapcsolható, hogy a Paperboy a cikk weboldaláról töltse le a teljes szöveget – a Firefox olvasó nézetéből ismert [Mozilla Readability](https://github.com/mozilla/readability) segítségével, a menük, ajánlók és megosztógombok nélkül.
+- A képek e-ink-barát módon kerülnek be: szürkeárnyalatosan, a tablet felbontására kicsinyítve, képaláírásokkal. A követőpixeleket, ikonokat és szerzői fotókat kiszűri.
+
+**Automatikus szinkronizálás**
+- A tablet csatlakoztatását magától észleli, és feltölti az aznapi kiadásokat a tablet megadott mappájába.
+- Alapból naponta egyszer, reggel 6-tól; beállítható minden csatlakozásra is.
+- A háttérben, a menüsorban fut; indulhat bejelentkezéskor, és értesítést küld, amikor friss hírek kerültek fel.
+- Előnézet: a kiadások tablet nélkül, helyben is elkészíthetők és megnézhetők.
+
+## Követelmények
+
+- macOS 14 (Sonoma) vagy újabb, Swift 5.10+ (Xcode vagy Command Line Tools)
+- reMarkable 2 vagy Paper Pro, USB-kábel
+
+## Telepítés
 
 ```sh
-./scripts/build-app.sh        # → build/Paperboy.app
-swift run                     # fejlesztéshez
+git clone git@github.com:plyk/paperboy.git
+cd paperboy
+./scripts/build-app.sh            # → build/Paperboy.app
+cp -R build/Paperboy.app /Applications/
 ```
 
-## Használat
+Fejlesztéshez `swift run` is elég.
 
-1. A tableten: Beállítások → Tárhely → **USB web interface** bekapcsolása, és a célmappa létrehozása (alapértelmezés: `Hírek`).
-2. Az alkalmazásban add hozzá a hírforrásokat és címkézd fel őket. Címke nélküli forrás az „Egyéb” kiadásba kerül.
-3. **Előnézet**: a PDF-ek elkészülnek helyben, tablet nélkül.
-4. **Szinkronizálás**: minden címkéből `Címke – ÉÉÉÉ-HH-NN` PDF készül, csak a még fel nem töltött cikkekkel.
-5. **Automatikus frissítés**: az alkalmazás a menüsorban fut tovább, és alapból naponta egyszer, a tablet csatlakoztatásakor (legkorábban 6:00-tól) magától szinkronizál. A Beállításokban átállítható minden csatlakozásra vagy kikapcsolható; ugyanitt kapcsolható be az indítás bejelentkezéskor.
+## Első lépések
 
-Az adatok helye: `~/Library/Application Support/Paperboy/library.json`.
+1. **A tableten:** Beállítások → Tárhely → kapcsold be az **USB web interface**-t, és hozd létre a célmappát (alapból `Hírek`).
+2. **A Paperboyban:** add hozzá a hírforrásokat a **+** gombbal, és címkézd fel őket. Címke nélküli forrás az „Egyéb” kiadásba kerül.
+3. **Próbáld ki** az **Előnézet** gombbal, majd dugd be és oldd fel a tabletet – a szinkronizálás magától elindul.
+4. A **Beállításokban** (⌘,) állítható a célmappa, a cikkek száma, a képek, a teljes szöveg és az automatikus frissítés, valamint az indítás bejelentkezéskor.
 
-## Korlátok
+## Tudnivalók
 
-- Az USB-felület nem tud mappát létrehozni, és nem tud fájlt felülírni vagy törölni.
-- A teljes cikk letöltése hírforrásonként kapcsolható be (Mozilla Readability.js, Apache-2.0, `Support/`). Fizetős vagy hibás oldalaknál a hírcsatorna szövege marad.
-- A képek szürkeárnyalatosan, legfeljebb 1200 px-re kicsinyítve kerülnek be (cikkenként max. 8); a Beállításokban kikapcsolható.
+- A feltöltés a tablet **USB web interface**-én keresztül történik (`10.11.99.1`), felhő és fiók nélkül. Ez a felület nem tud mappát létrehozni, és meglévő dokumentumot sem tud felülírni – ezért kell a célmappát előre létrehozni, és ezért kap egy nap második kiadása `(2)` jelölést.
+- Fizetős vagy bejelentkezéshez kötött cikkeknél a hírcsatorna kivonata marad.
+- Az adatok helye: `~/Library/Application Support/Paperboy/library.json`.
+
+## Felhasznált összetevők
+
+- [Mozilla Readability](https://github.com/mozilla/readability) 0.6.0 – Apache License 2.0 (`Support/Readability.js`, `Support/Readability-LICENSE.md`)
