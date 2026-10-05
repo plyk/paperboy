@@ -1,3 +1,5 @@
+<p align="center"><img src="Design/paperboy-icon.png" width="160" alt="Paperboy"></p>
+
 # Paperboy
 
 Reggeli újság a reMarkable tabletre: macOS-alkalmazás, amely címkézett RSS/Atom hírforrásokból napi PDF-kiadásokat készít, és USB-n keresztül feltölti őket a reMarkable tablet egy megadott mappájába.

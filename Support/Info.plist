@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleExecutable</key>
 	<string>Paperboy</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>hu.spartancode.Paperboy</string>
 	<key>CFBundleName</key>

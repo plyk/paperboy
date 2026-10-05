@@ -11,7 +11,7 @@ mkdir -p "$APP/Contents/MacOS"
 cp "$(swift build -c release --show-bin-path)/Paperboy" "$APP/Contents/MacOS/"
 mkdir -p "$APP/Contents/Resources"
 cp Support/Info.plist "$APP/Contents/"
-cp Support/Readability.js Support/Readability-LICENSE.md "$APP/Contents/Resources/"
+cp Support/Readability.js Support/Readability-LICENSE.md Support/AppIcon.icns "$APP/Contents/Resources/"
 codesign --force --sign - "$APP"
 
 echo "Kész: $APP"
