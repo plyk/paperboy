@@ -61,28 +61,28 @@ Fejlesztéshez `swift run` is elég.
 ## Feltöltési módok
 
 > [!IMPORTANT]
-> **Az ajánlott mód az USB web interface.** Ilyenkor a PDF-et maga a tablet felülete veszi át – ugyanúgy, mint a hivatalos alkalmazásnál vagy a felhős szinkronnál –, ezért a kiadás azonnal megjelenik, és a tablet felülete soha nem indul újra. Az SSH-s mód csak akkor érdemes, ha kifejezetten kell valamelyik előnye (lásd lent), és elfogadható, hogy minden feltöltés után pár másodpercre újraindul a tablet felülete.
+> **A PDF-ek feltöltésére a legjobb az USB web interface.** Ilyenkor a PDF-et maga a tablet felülete veszi át – ugyanúgy, mint a hivatalos alkalmazásnál vagy a felhős szinkronnál –, ezért a kiadás azonnal megjelenik, és a tablet felülete nem indul újra. Az SSH-s mód is ezt használja, ha a web interface be van kapcsolva; SSH-n csak a közvetlen fájlíráshoz (mappa létrehozása, takarítás, vagy ha a web interface nem érhető el) kell a felületet újraindítani.
 
-### USB web interface (ajánlott)
+### USB web interface
 
 - Kábelen működik, jelszó nélkül; a tableten be kell kapcsolni: Beállítások → Tárhely → USB web interface.
 - Az új kiadások újraindítás nélkül, azonnal megjelennek.
 - A célmappát egyszer kézzel kell létrehozni a tableten, mert ez a felület mappát nem tud létrehozni.
 
-### SSH
+### SSH + web interface
 
-A Paperboy SSH-n is tud feltölteni (Beállítások → reMarkable → Feltöltés módja). Előnyei:
+A Paperboy SSH-t is tud használni (Beállítások → reMarkable → Feltöltés módja: SSH). Ez hibrid mód: ha a tableten be van kapcsolva a web interface, **a PDF-ek továbbra is azon mennek fel, így azonnal megjelennek, újraindítás nélkül**. Az SSH csak arra kell, amire a web interface nem képes:
 
-- a célmappát maga hozza létre, a dokumentumnevek `.pdf` nélkül jelennek meg, és nem kell bekapcsolni a web interface-t;
-- Wi-Fi-n is működhet, ha a tableten engedélyezve van az SSH Wi-Fi-n, és a tablet címét megadod;
+- a célmappát a Paperboy maga hozza létre, ha még nincs meg;
 - bekapcsolható, hogy a régi kiadások egy idő után a Kukába kerüljenek – csak a Paperboy által létrehozott, **jegyzet nélküli** kiadások, és a Kukából visszaállíthatók.
 
-**Miért indul újra a tablet felülete?** SSH-n a Paperboy közvetlenül a tablet dokumentumtárába írja a fájlokat. A tablet felülete (`xochitl`) ezt a tárat csak induláskor olvassa be, a változásait nem figyeli – így az új dokumentumok csak a felület újraindítása (kb. 7–10 másodperc) után látszanak. Ez nem a PDF-feltöltés sajátja, hanem a közvetlen fájlírásé: minden SSH-s, fájlmásolással dolgozó eszköz ugyanígy működik. A tablet maga nem indul újra, csak a felülete.
+Ha a web interface nem érhető el (ki van kapcsolva, vagy Wi-Fi-n kapcsolódsz), a Paperboy a kiadásokat közvetlenül a tablet dokumentumtárába írja – ilyenkor a nevükből a `.pdf` is elmarad, de csak a tablet felületének újraindítása után látszanak.
 
-Ezért SSH-n:
+**Miért kell néha újraindítani a tablet felületét?** A tablet felülete (`xochitl`) a dokumentumtárat csak induláskor olvassa be, a változásait nem figyeli. Amit a Paperboy SSH-n közvetlenül a tárba ír vagy ott módosít – közvetlenül írt kiadás, új mappa, Kukába helyezés –, az csak a felület újraindítása (kb. 7–10 másodperc) után látszik. Ez nem a PDF-feltöltés sajátja, hanem a közvetlen fájlírásé: minden SSH-s, fájlmásolással dolgozó eszköz ugyanígy működik. A tablet maga nem indul újra, csak a felülete. Ezért:
 
-- **kézi szinkronizálásnál** a felület azonnal újraindul;
-- **automatikus szinkronizálásnál** a kiadások felkerülnek, de a felület csak jóváhagyásra indul újra: értesítés érkezik „Újraindítás most” gombbal, és a menüsorból is elindítható. A régi kiadások Kukába helyezése is csak ilyenkor történik.
+- **kézi szinkronizálásnál** a közvetlenül írt kiadások után a felület azonnal újraindul;
+- **automatikus szinkronizálásnál** a felület csak jóváhagyásra indul újra: értesítés érkezik „Újraindítás most” gombbal, és a menüsorból is elindítható;
+- a **takarításhoz** szükséges újraindításra legfeljebb hetente kérdez rá a Paperboy.
 
 Beállítás: a root jelszót a tableten a Beállítások → Általános → Súgó → Névjegy → Szerzői jogok és licencek oldalon, a *GPLv3 Compliance* résznél találod. A Beállításokban egyszer megadva a Paperboy feltelepíti vele a saját SSH-kulcsát (`~/Library/Application Support/Paperboy/ssh`), a jelszót nem tárolja. reMarkable Paper Pro-n az SSH-hoz [fejlesztői mód](https://support.remarkable.com/s/article/Developer-mode) kell, ami gyári visszaállítással jár.
 

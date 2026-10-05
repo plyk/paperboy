@@ -21,8 +21,15 @@ final class SyncEngine: ObservableObject {
         var editions = 0
         var articles = 0
         var error: String?
-        /// SSH-n feltöltve, de a tablet felülete még nem indult újra.
-        var restartPending = false
+        /// Miért vár a tablet felülete újraindításra (nil: nem vár).
+        var restartReason: RestartReason?
+    }
+
+    enum RestartReason {
+        /// Közvetlenül írt dokumentumok vagy új mappa: csak újraindítás után látszanak.
+        case newDocuments
+        /// Régi kiadások Kukába helyezése; ehhez is újra kell indítani a felületet.
+        case cleanup
     }
 
     private struct Edition {
@@ -32,8 +39,9 @@ final class SyncEngine: ObservableObject {
 
     @Published private(set) var isRunning = false
     @Published private(set) var log: [LogLine] = []
-    /// Automatikus SSH-s szinkron után a tablet felületének újraindítása a felhasználó jóváhagyására vár.
-    @Published private(set) var restartPending = false
+    /// A tablet felületének újraindítása a felhasználó jóváhagyására vár.
+    @Published private(set) var restartReason: RestartReason?
+    var restartPending: Bool { restartReason != nil }
 
     private let store: FeedStore
     private let extractor = FullTextExtractor()
@@ -85,11 +93,20 @@ final class SyncEngine: ObservableObject {
 
         let summary = await run(.upload, deferRestart: true)
         // Az újraindításhoz jóváhagyás kell, ezért erről mindig szólunk.
-        if summary.restartPending {
+        switch summary.restartReason {
+        case .newDocuments:
             Self.notify(title: "Friss hírek a tableten",
                         body: "\(summary.editions) kiadás, \(summary.articles) cikk felkerült. A megjelenítésükhöz a tablet felülete pár másodpercre újraindul.",
                         category: NotificationHandler.restartCategory)
             return
+        case .cleanup:
+            let uploaded = summary.editions > 0 ? "\(summary.editions) kiadás felkerült. " : ""
+            Self.notify(title: summary.editions > 0 ? "Friss hírek a tableten" : "Régi kiadások takarítása",
+                        body: uploaded + "A régi kiadások a Kukába tehetők; ehhez a tablet felülete pár másodpercre újraindul.",
+                        category: NotificationHandler.restartCategory)
+            return
+        case nil:
+            break
         }
         guard store.settings.notifyAfterAutoSync else { return }
         if let error = summary.error {
@@ -119,6 +136,12 @@ final class SyncEngine: ObservableObject {
                 try await connection.prepare(folder: folder)
                 transport = connection
                 note("Célmappa: \(folder.isEmpty ? "(gyökér)" : folder)")
+                if let ssh = connection as? RemarkableSSH {
+                    if let problem = ssh.webInterfaceProblem { note(problem, isError: true) }
+                    note(ssh.uploadsViaWebInterface
+                         ? "Feltöltés a web interface-en, újraindítás nélkül."
+                         : "A web interface nem érhető el (vagy új mappa készült): a kiadások közvetlenül kerülnek a tabletre, és a felület újraindítása után látszanak.")
+                }
             }
 
             let articles = await fetchAll()
@@ -126,7 +149,7 @@ final class SyncEngine: ObservableObject {
             guard !editions.isEmpty else {
                 note("Nincs új cikk.")
                 if let transport {
-                    summary.restartPending = try await finishUpload(transport, deferRestart: deferRestart)
+                    summary.restartReason = try await finishUpload(transport, deferRestart: deferRestart)
                     store.syncState.lastSync = Date()
                 }
                 return summary
@@ -173,7 +196,7 @@ final class SyncEngine: ObservableObject {
             }
 
             if let transport {
-                summary.restartPending = try await finishUpload(transport, deferRestart: deferRestart)
+                summary.restartReason = try await finishUpload(transport, deferRestart: deferRestart)
                 pruneHistory(today: day)
                 store.syncState.lastSync = now
                 note("Kész.")
@@ -201,34 +224,59 @@ final class SyncEngine: ObservableObject {
         }
     }
 
-    /// A feltöltés lezárása. SSH-n ez a régi kiadások Kukába helyezése és a felület újraindítása; ha
-    /// `deferRestart`, mindkettő a felhasználó jóváhagyásáig vár (futó felület mellett a dokumentumok adatait
-    /// sem módosítjuk, mert a tablet felülírhatná). Visszaadja, hogy az újraindítás függőben maradt-e.
-    private func finishUpload(_ transport: TabletTransport, deferRestart: Bool) async throws -> Bool {
+    /// A feltöltés lezárása. Visszaadja, ha a tablet felülete újraindításra vár.
+    ///
+    /// SSH-n a közvetlenül írt dokumentumok (és egy újonnan létrehozott mappa) csak újraindítás után látszanak:
+    /// kézi szinkronnál ez azonnal megtörténik, `deferRestart` esetén jóváhagyásra vár. A web interface-en
+    /// feltöltött kiadások azonnal látszanak; ilyenkor újraindításra csak a régi kiadások takarításához lenne
+    /// szükség, erre legfeljebb hetente kérdezünk rá. Futó felület mellett a dokumentumok adatait nem
+    /// módosítjuk, mert a tablet felülírhatná, ezért a takarítás mindig az újraindítással együtt történik.
+    private func finishUpload(_ transport: TabletTransport, deferRestart: Bool) async throws -> RestartReason? {
         guard let ssh = transport as? RemarkableSSH else {
             try await transport.finish()
-            return false
+            return nil
         }
-        if deferRestart {
-            guard ssh.hasPendingChanges else { return false }
-            restartPending = true
-            note("Az új kiadások a tableten vannak; a felület újraindítása után jelennek meg.")
-            return true
-        }
-        try await trashOldEditions(ssh)
-        if ssh.hasPendingChanges || restartPending {
+        if ssh.hasPendingChanges || (!deferRestart && restartReason == .newDocuments) {
+            if deferRestart {
+                restartReason = .newDocuments
+                note("Az új kiadások a tableten vannak; a felület újraindítása után jelennek meg.")
+                return restartReason
+            }
+            try await trashOldEditions(ssh)
             note("A tablet felületének újraindítása…")
             try await ssh.restartInterface()
+            restartReason = nil
+            return nil
         }
-        restartPending = false
-        return false
+        if restartReason == nil, isCleanupDue {
+            restartReason = .cleanup
+            store.syncState.lastCleanupPrompt = Date()
+            note("Régi kiadások várnak a Kukába helyezésre; ehhez a tablet felületét újra kell indítani (menüsor vagy eszköztár).")
+        }
+        return restartReason
+    }
+
+    /// A takarításhoz kijelölt (a beállított napnál régebbi) kiadások.
+    private var cleanupCandidates: [String: Date] {
+        guard store.settings.trashOldEditions else { return [:] }
+        let limit = Date().addingTimeInterval(-Double(store.settings.keepEditionsDays) * 86_400)
+        return (store.syncState.createdDocuments ?? [:]).filter { $0.value < limit }
+    }
+
+    /// Akkor kérdezünk rá a takarításra, ha már egy hétnyi régi kiadás gyűlt össze, és egy hete nem kérdeztünk.
+    private var isCleanupDue: Bool {
+        let week: TimeInterval = 7 * 86_400
+        guard let oldest = cleanupCandidates.values.min(),
+              Date().timeIntervalSince(oldest) > Double(store.settings.keepEditionsDays) * 86_400 + week
+        else { return false }
+        return store.syncState.lastCleanupPrompt.map { Date().timeIntervalSince($0) > week } ?? true
     }
 
     /// A függőben lévő újraindítás végrehajtása (az értesítés gombjáról vagy a menüből).
     func restartTabletInterface() async {
         guard !isRunning else { return }
         guard let ssh = store.settings.makeTransport() as? RemarkableSSH else {
-            restartPending = false
+            restartReason = nil
             return
         }
         isRunning = true
@@ -238,8 +286,8 @@ final class SyncEngine: ObservableObject {
             try await trashOldEditions(ssh)
             note("A tablet felületének újraindítása…")
             try await ssh.restartInterface()
-            restartPending = false
-            note("Kész, az új kiadások megjelentek a tableten.")
+            note(restartReason == .cleanup ? "Kész." : "Kész, az új kiadások megjelentek a tableten.")
+            restartReason = nil
         } catch {
             note(error.localizedDescription, isError: true)
             Self.notify(title: "A tablet felülete nem indult újra", body: error.localizedDescription)
@@ -247,16 +295,12 @@ final class SyncEngine: ObservableObject {
     }
 
     private func trashOldEditions(_ ssh: RemarkableSSH) async throws {
-        if store.settings.trashOldEditions {
-            let limit = Date().addingTimeInterval(-Double(store.settings.keepEditionsDays) * 86_400)
-            let old = (store.syncState.createdDocuments ?? [:]).filter { $0.value < limit }.map(\.key)
-            if !old.isEmpty {
-                let result = try await ssh.moveToTrash(old)
-                for id in result.handled { store.syncState.createdDocuments?[id] = nil }
-                if result.trashed > 0 { note("\(result.trashed) régi kiadás a Kukába került.") }
-                if result.annotated > 0 { note("\(result.annotated) régi kiadás maradt a helyén, mert jegyzet van benne.") }
-            }
-        }
+        let old = Array(cleanupCandidates.keys)
+        guard !old.isEmpty else { return }
+        let result = try await ssh.moveToTrash(old)
+        for id in result.handled { store.syncState.createdDocuments?[id] = nil }
+        if result.trashed > 0 { note("\(result.trashed) régi kiadás a Kukába került.") }
+        if result.annotated > 0 { note("\(result.annotated) régi kiadás maradt a helyén, mert jegyzet van benne.") }
     }
 
     /// Lekéri az összes aktív hírforrást, és frissíti az állapotukat.

@@ -64,7 +64,7 @@ private struct MenuBarContent: View {
         }
         if sync.restartPending {
             Divider()
-            Text("Új kiadások várnak megjelenítésre")
+            Text(sync.restartReason == .cleanup ? "Régi kiadások várnak takarításra" : "Új kiadások várnak megjelenítésre")
             Button("Tablet felületének újraindítása") { Task { await sync.restartTabletInterface() } }
                 .disabled(sync.isRunning || !tablet.isConnected)
         }

@@ -22,7 +22,7 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
                 Text(store.settings.transport == .usbWeb
                      ? "Egyszerű, jelszó nélküli mód USB-kábelen. A tableten be kell kapcsolni a Beállítások → Tárhely → USB web interface opciót."
-                     : "Közvetlen hozzáférés root jelszóval: a célmappát a Paperboy hozza létre, a dokumentumnevek .pdf nélkül jelennek meg, és Wi-Fi-n is működhet. Az új kiadások a tablet felületének újraindítása (pár másodperc) után jelennek meg: kézi szinkronizálásnál ez azonnal megtörténik, automatikusnál értesítésben kér jóváhagyást.")
+                     : "SSH + web interface: ha a tableten be van kapcsolva a web interface, a PDF-ek azon mennek fel, és azonnal megjelennek. Az SSH a célmappa létrehozásához és a régi kiadások takarításához kell. Ha a web interface nem érhető el (pl. Wi-Fi-n), a kiadások közvetlenül kerülnek a tabletre, és csak a felület újraindítása (pár másodperc) után látszanak.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -66,7 +66,7 @@ struct SettingsView: View {
 
                     Toggle(isOn: $store.settings.trashOldEditions) {
                         Text("Régi kiadások áthelyezése a Kukába")
-                        Text("Csak a Paperboy által létrehozott, jegyzet nélküli kiadásokat érinti; a Kukából visszaállíthatók.")
+                        Text("Csak a Paperboy által létrehozott, jegyzet nélküli kiadásokat érinti; a Kukából visszaállíthatók. Ehhez a tablet felületét újra kell indítani, ezért erre legfeljebb hetente rákérdez.")
                     }
                     if store.settings.trashOldEditions {
                         Stepper("\(store.settings.keepEditionsDays) napnál régebbiek",

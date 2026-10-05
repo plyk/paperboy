@@ -35,7 +35,7 @@ extension AppSettings {
 }
 
 extension RemarkableUSB: TabletTransport {
-    var unreachableError: Error { USBError.unreachable(host: host) }
+    var unreachableError: Error { lastError ?? USBError.unreachable(host: host) }
 
     func test(folder: String) async throws -> String {
         try await enterFolder(path: folder)

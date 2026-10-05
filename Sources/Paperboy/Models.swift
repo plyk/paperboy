@@ -82,6 +82,8 @@ struct SyncState: Codable {
     var lastSync: Date?
     /// SSH-n létrehozott kiadások a tableten: azonosító → létrehozás ideje (a régiek takarításához).
     var createdDocuments: [String: Date]?
+    /// Mikor kérdeztünk rá utoljára a régi kiadások takarítására (legfeljebb hetente kérdezünk).
+    var lastCleanupPrompt: Date?
 }
 
 struct Article: Identifiable {

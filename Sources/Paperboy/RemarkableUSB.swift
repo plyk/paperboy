@@ -14,6 +14,7 @@ final class RemarkableUSB {
 
     enum USBError: LocalizedError {
         case unreachable(host: String)
+        case localNetworkDenied
         case folderNotFound(String)
         case http(Int)
         case badResponse
@@ -22,6 +23,8 @@ final class RemarkableUSB {
             switch self {
             case .unreachable(let host):
                 "A tablet nem érhető el a(z) \(host) címen. Csatlakoztasd USB-n, oldd fel, és kapcsold be a Beállítások → Tárhely → USB web interface opciót."
+            case .localNetworkDenied:
+                "A macOS nem engedi, hogy a Paperboy elérje a tabletet. Kapcsold be: Rendszerbeállítások → Adatvédelem és biztonság → Helyi hálózat → Paperboy."
             case .folderNotFound(let name):
                 "A(z) „\(name)” mappa nem létezik a tableten. Hozd létre a tableten, mert USB-n keresztül nem lehet mappát létrehozni."
             case .http(let code):
@@ -36,6 +39,8 @@ final class RemarkableUSB {
     private var base: String { "http://\(host)" }
     /// A `prepare(folder:)` óta használt célmappa.
     var folder = ""
+    /// Az utolsó sikertelen kapcsolódás oka (pl. hiányzó helyi hálózati engedély).
+    private(set) var lastError: USBError?
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
@@ -61,8 +66,11 @@ final class RemarkableUSB {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw USBError.unreachable(host: host)
+            let failure = Self.isLocalNetworkDenied(error) ? USBError.localNetworkDenied : .unreachable(host: host)
+            lastError = failure
+            throw failure
         }
+        lastError = nil
         try check(response)
         guard let entries = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             throw USBError.badResponse
@@ -77,6 +85,11 @@ final class RemarkableUSB {
 
     /// Belép a megadott útvonalú mappába ("Hírek/Reggeli"); üres útvonal = gyökér.
     func enterFolder(path: String) async throws {
+        _ = try await listFolder(path: path)
+    }
+
+    /// Belép a mappába, és visszaadja a tartalmát.
+    private func listFolder(path: String) async throws -> [Item] {
         var items = try await list(folderID: nil)
         let components = path.split(separator: "/")
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -87,6 +100,22 @@ final class RemarkableUSB {
             }) else { throw USBError.folderNotFound(component) }
             items = try await list(folderID: folder.id)
         }
+        return items
+    }
+
+    /// A célmappában lévő, adott nevű dokumentum azonosítója (a tablet a fájlnevet `.pdf`-fel együtt is
+    /// használhatja névként, ezért mindkettőt elfogadjuk).
+    func documentID(named name: String) async throws -> String? {
+        var items = try await listFolder(path: folder)
+        for _ in 0..<3 {
+            if let item = items.last(where: { !$0.isFolder && ($0.name == name || $0.name == "\(name).pdf") }) {
+                return item.id
+            }
+            // A feltöltött fájl feldolgozása eltarthat egy pillanatig.
+            try await Task.sleep(nanoseconds: 700_000_000)
+            items = try await listFolder(path: folder)
+        }
+        return nil
     }
 
     func upload(_ pdf: Data, filename: String) async throws {
@@ -107,6 +136,14 @@ final class RemarkableUSB {
         request.setValue(base + "/", forHTTPHeaderField: "Referer")
         let (_, response) = try await session.upload(for: request, from: body)
         try check(response)
+    }
+
+    /// A macOS helyi hálózati adatvédelme tiltja-e a kapcsolatot (ilyenkor a hiba „offline”-nak látszik).
+    private static func isLocalNetworkDenied(_ error: Error) -> Bool {
+        let error = error as NSError
+        let underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError
+        let path = underlying?.userInfo["_NSURLErrorNWPathKey"] ?? error.userInfo["_NSURLErrorNWPathKey"]
+        return path.map { "\($0)" }?.contains("Local network prohibited") ?? false
     }
 
     private func check(_ response: URLResponse) throws {

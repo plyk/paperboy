@@ -1,7 +1,13 @@
 import Foundation
 import Network
 
-/// Feltöltés SSH-n, közvetlenül a tablet dokumentumtárába (xochitl).
+/// Hibrid feltöltés: SSH + USB web interface.
+///
+/// Ha a web interface elérhető, a PDF-ek azon mennek fel: a tablet felülete maga veszi át őket, így azonnal
+/// megjelennek, újraindítás nélkül. Az SSH ilyenkor csak arra kell, amire a web interface nem képes: a mappa
+/// létrehozására és a régi kiadások Kukába helyezésére. Ha a web interface nem érhető el (ki van kapcsolva,
+/// vagy Wi-Fi-n vagyunk), a dokumentumok közvetlenül a tablet dokumentumtárába (xochitl) kerülnek; ezeket a
+/// felület csak újraindítás után látja, mert a tárat csak induláskor olvassa be.
 ///
 /// Minden dokumentum egy `<uuid>.pdf`, egy `<uuid>.content` és egy `<uuid>.metadata` fájl; a mappák csak
 /// `.metadata`-t és `.content`-et kapnak. Az új fájlokat a tablet felülete újraindítás után látja.
@@ -44,17 +50,25 @@ final class RemarkableSSH: TabletTransport {
     var unreachableError: Error { SSHError.unreachable(host: host) }
 
     private var folderID = ""
+    /// A PDF-ek feltöltésére használt web interface, ha a `prepare` óta elérhető.
+    private var web: RemarkableUSB?
+    private let webHost: String
+    /// A feltöltések a web interface-en mennek-e (újraindítás nélkül).
+    private(set) var uploadsViaWebInterface = false
+    /// Ha a web interface-t a macOS tiltása miatt nem érjük el, ennek a leírása (a naplóba).
+    private(set) var webInterfaceProblem: String?
     /// Történt-e módosítás, amely miatt újra kell indítani a tablet felületét.
     private var needsRestart = false
 
     init(host: String, port: Int = 22, user: String = "root", directory: String = defaultDirectory,
-         restartCommand: String = "systemctl restart xochitl") {
+         restartCommand: String = "systemctl restart xochitl", webHost: String = RemarkableUSB.defaultHost) {
         let trimmed = host.trimmingCharacters(in: .whitespaces)
         self.host = trimmed.isEmpty ? RemarkableUSB.defaultHost : trimmed
         self.port = port
         self.user = user
         self.directory = directory
         self.restartCommand = restartCommand
+        self.webHost = webHost
     }
 
     // MARK: - TabletTransport
@@ -73,10 +87,28 @@ final class RemarkableSSH: TabletTransport {
 
     func prepare(folder: String) async throws {
         let entries = try await listEntries()
-        folderID = try await resolveFolder(folder, in: entries, create: true) ?? ""
+        if let existing = try await resolveFolder(folder, in: entries, create: false) {
+            folderID = existing
+            // A web interface csak a felület által már ismert mappákat látja, ezért csak meglévő mappánál.
+            let web = RemarkableUSB(host: webHost)
+            if await web.isReachable() {
+                try await web.prepare(folder: folder)
+                self.web = web
+            } else if case .localNetworkDenied = web.lastError {
+                webInterfaceProblem = web.lastError?.localizedDescription
+            }
+        } else {
+            folderID = try await resolveFolder(folder, in: entries, create: true) ?? ""
+        }
+        uploadsViaWebInterface = web != nil
     }
 
     func upload(_ pdf: Data, name: String) async throws -> String? {
+        if let web {
+            _ = try await web.upload(pdf, name: name)
+            // Az azonosító a későbbi takarításhoz kell; ha nem található, a kiadás egyszerűen nem lesz takarítva.
+            return try? await web.documentID(named: name)
+        }
         let id = UUID().uuidString.lowercased()
         // A metadata kerül fel utoljára: a tablet csak akkor látja a dokumentumot, ha a PDF már ott van.
         try await write(pdf, to: "\(id).pdf")
