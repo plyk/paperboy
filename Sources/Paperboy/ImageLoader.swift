@@ -31,7 +31,7 @@ enum ImageLoader {
 
     private static func fetch(_ url: URL) async -> ArticleImage? {
         var request = URLRequest(url: url, timeoutInterval: 20)
-        request.setValue("RemarkableFeeds/0.1 (macOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Paperboy/0.1 (macOS)", forHTTPHeaderField: "User-Agent")
         request.setValue("image/jpeg, image/png, image/webp, image/*;q=0.8", forHTTPHeaderField: "Accept")
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true,

@@ -14,7 +14,7 @@ enum EditionRenderer {
     static func render(title: String, date: Date, articles: [Article]) -> Data {
         let data = NSMutableData()
         var mediaBox = CGRect(origin: .zero, size: pageSize)
-        let info = [kCGPDFContextTitle: title, kCGPDFContextCreator: "RemarkableFeeds"] as CFDictionary
+        let info = [kCGPDFContextTitle: title, kCGPDFContextCreator: "Paperboy"] as CFDictionary
         guard let consumer = CGDataConsumer(data: data as CFMutableData),
               let context = CGContext(consumer: consumer, mediaBox: &mediaBox, info)
         else { return Data() }

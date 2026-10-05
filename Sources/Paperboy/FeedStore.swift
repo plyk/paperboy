@@ -1,7 +1,7 @@
 import Foundation
 
 /// A hírforrások, beállítások és a szinkron-előzmények tárolója
-/// (~/Library/Application Support/RemarkableFeeds/library.json).
+/// (~/Library/Application Support/Paperboy/library.json).
 @MainActor
 final class FeedStore: ObservableObject {
     @Published var feeds: [Feed] = [] { didSet { save() } }
@@ -18,8 +18,13 @@ final class FeedStore: ObservableObject {
     private var isLoading = false
 
     init() {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("RemarkableFeeds", isDirectory: true)
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let dir = support.appendingPathComponent("Paperboy", isDirectory: true)
+        // Az átnevezés (RemarkableFeeds → Paperboy) előtti adatok átköltöztetése.
+        let legacyDir = support.appendingPathComponent("RemarkableFeeds", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path), FileManager.default.fileExists(atPath: legacyDir.path) {
+            try? FileManager.default.moveItem(at: legacyDir, to: dir)
+        }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appendingPathComponent("library.json")
         load()

@@ -36,7 +36,7 @@ enum FeedFetcher {
         else { throw FeedError.invalidURL }
 
         var request = URLRequest(url: url, timeoutInterval: 20)
-        request.setValue("RemarkableFeeds/0.1 (macOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Paperboy/0.1 (macOS)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
                          forHTTPHeaderField: "Accept")
         let (data, response) = try await URLSession.shared.data(for: request)

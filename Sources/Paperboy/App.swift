@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct RemarkableFeedsApp: App {
+struct PaperboyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store: FeedStore
     @StateObject private var sync: SyncEngine

@@ -5,7 +5,7 @@ Reggeli újság a reMarkable tabletre: macOS-alkalmazás, amely címkézett RSS/
 ## Build
 
 ```sh
-./scripts/build-app.sh        # → build/RemarkableFeeds.app
+./scripts/build-app.sh        # → build/Paperboy.app
 swift run                     # fejlesztéshez
 ```
 
@@ -17,7 +17,7 @@ swift run                     # fejlesztéshez
 4. **Szinkronizálás**: minden címkéből `Címke – ÉÉÉÉ-HH-NN` PDF készül, csak a még fel nem töltött cikkekkel.
 5. **Automatikus frissítés**: az alkalmazás a menüsorban fut tovább, és alapból naponta egyszer, a tablet csatlakoztatásakor (legkorábban 6:00-tól) magától szinkronizál. A Beállításokban átállítható minden csatlakozásra vagy kikapcsolható; ugyanitt kapcsolható be az indítás bejelentkezéskor.
 
-Az adatok helye: `~/Library/Application Support/RemarkableFeeds/library.json`.
+Az adatok helye: `~/Library/Application Support/Paperboy/library.json`.
 
 ## Korlátok
 

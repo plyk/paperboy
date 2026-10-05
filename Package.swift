@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "RemarkableFeeds",
+    name: "Paperboy",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "RemarkableFeeds")
+        .executableTarget(name: "Paperboy")
     ]
 )

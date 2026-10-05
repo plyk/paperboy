@@ -116,7 +116,7 @@ final class SyncEngine: ObservableObject {
             let day = now.formatted(.iso8601.year().month().day())
             var previewFiles: [URL] = []
             let previewDir = FileManager.default.temporaryDirectory
-                .appendingPathComponent("RemarkableFeeds-előnézet", isDirectory: true)
+                .appendingPathComponent("Paperboy-előnézet", isDirectory: true)
             if mode == .preview {
                 try? FileManager.default.removeItem(at: previewDir)
                 try FileManager.default.createDirectory(at: previewDir, withIntermediateDirectories: true)

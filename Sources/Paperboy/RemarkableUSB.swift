@@ -81,7 +81,7 @@ struct RemarkableUSB {
 
     func upload(_ pdf: Data, filename: String) async throws {
         guard let url = URL(string: "\(base)/upload") else { throw USBError.badResponse }
-        let boundary = "RemarkableFeeds-\(UUID().uuidString)"
+        let boundary = "Paperboy-\(UUID().uuidString)"
         let safeName = filename.replacingOccurrences(of: "\"", with: "'")
         var body = Data()
         body.append(Data("--\(boundary)\r\n".utf8))
