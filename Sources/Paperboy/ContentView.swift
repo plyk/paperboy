@@ -40,7 +40,11 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 if store.feeds.isEmpty {
                     ContentUnavailableView {
-                        Label("Még nincs hírforrás", systemImage: "newspaper")
+                        Label {
+                            Text("Még nincs hírforrás")
+                        } icon: {
+                            Image(nsImage: PaperboyLogo.image(height: 56))
+                        }
                     } description: {
                         Text("Adj hozzá egy RSS- vagy Atom-hírcsatornát, és címkézd fel. Minden címkéből napi PDF-kiadás készül a tabletre.")
                     } actions: {

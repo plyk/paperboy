@@ -33,6 +33,7 @@ enum EditionRenderer {
 
     private static func contents(title: String, date: Date, articles: [Article]) -> NSAttributedString {
         let text = NSMutableAttributedString()
+        text.append(masthead())
         text.append(paragraph(title, font: sans(26, .bold), after: 2))
         let dateText = date.formatted(.dateTime.year().month(.wide).day().weekday(.wide)
             .locale(Locale(identifier: "hu_HU")))
@@ -49,6 +50,23 @@ enum EditionRenderer {
                                   extra: [destinationKey: "a\(index)"]))
         }
         return text
+    }
+
+    /// Kis fejléc a címoldal tetején: logó és „PAPERBOY” felirat.
+    private static func masthead() -> NSAttributedString {
+        let logoHeight: CGFloat = 15
+        let attachment = NSTextAttachment()
+        attachment.image = PaperboyLogo.image(height: logoHeight)
+        // A logó alja a szöveg alapvonalára kerüljön.
+        attachment.bounds = CGRect(x: 0, y: -1, width: logoHeight * PaperboyLogo.aspectRatio, height: logoHeight)
+        let line = NSMutableAttributedString(attachment: attachment)
+        line.append(NSAttributedString(string: "  PAPERBOY\n", attributes: [
+            .font: sans(9, .bold), .foregroundColor: gray, .kern: 2.2,
+        ]))
+        let style = NSMutableParagraphStyle()
+        style.paragraphSpacing = 14
+        line.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: line.length))
+        return line
     }
 
     private static func body(of article: Article) -> NSAttributedString {

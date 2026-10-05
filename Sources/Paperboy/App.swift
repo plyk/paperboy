@@ -41,7 +41,7 @@ struct PaperboyApp: App {
                 .environmentObject(sync)
                 .environmentObject(tablet)
         } label: {
-            Image(systemName: sync.isRunning ? "arrow.triangle.2.circlepath" : "newspaper")
+            Image(nsImage: PaperboyLogo.menuBarImage(isSyncing: sync.isRunning))
         }
     }
 }
