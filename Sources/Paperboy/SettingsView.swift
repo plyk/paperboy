@@ -68,9 +68,26 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section {
+                HStack(spacing: 8) {
+                    Image(nsImage: PaperboyLogo.image(height: 18))
+                    Text(Self.versionText)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
         }
         .formStyle(.grouped)
         .frame(width: 480)
+    }
+
+    /// A build script a git-címkéből írja be a verziót; `swift run`-nál nincs Info.plist.
+    private static var versionText: String {
+        let info = Bundle.main.infoDictionary
+        guard let version = info?["CFBundleShortVersionString"] as? String else { return "Paperboy – fejlesztői változat" }
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "Paperboy \(version) (build \(build))"
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

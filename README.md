@@ -38,6 +38,10 @@ Kedvenc hírforrásaidból minden nap egy olvasható, jegyzetelhető PDF-kiadás
 
 ## Telepítés
 
+**Kész alkalmazás:** a [Releases](https://github.com/plyk/paperboy/releases) oldalról töltsd le a legújabb `Paperboy-X.Y.Z.zip`-et, csomagold ki, és húzd a `Paperboy.app`-ot az Alkalmazások mappába. Az alkalmazás nincs Apple-fejlesztői tanúsítvánnyal aláírva, ezért első indításkor a macOS letiltja: ilyenkor a Rendszerbeállítások → Adatvédelem és biztonság alján válaszd a „Megnyitás mindenképp” lehetőséget.
+
+**Forrásból:**
+
 ```sh
 git clone git@github.com:plyk/paperboy.git
 cd paperboy
@@ -53,6 +57,18 @@ Fejlesztéshez `swift run` is elég.
 2. **A Paperboyban:** add hozzá a hírforrásokat a **+** gombbal, és címkézd fel őket. Címke nélküli forrás az „Egyéb” kiadásba kerül.
 3. **Próbáld ki** az **Előnézet** gombbal, majd dugd be és oldd fel a tabletet – a szinkronizálás magától elindul.
 4. A **Beállításokban** (⌘,) állítható a célmappa, a cikkek száma, a képek, a teljes szöveg és az automatikus frissítés, valamint az indítás bejelentkezéskor.
+
+## Verziók és kiadások
+
+A verziók [szemantikus verziózást](https://semver.org/lang/hu/) követnek, és `vX.Y.Z` git-címkék jelölik őket. A build script a legutóbbi címkéből írja be a verziót az alkalmazásba, a build-szám pedig a commitok száma; mindkettő látszik a Beállítások alján és a Névjegy ablakban.
+
+Új kiadás a `main` ágról, minden változás commitolása és pusholása után:
+
+```sh
+./scripts/release.sh 0.2.0
+```
+
+A script létrehozza a `v0.2.0` címkét, elkészíti az alkalmazást, és GitHub Release-t ad ki a letölthető zippel. A kiadási jegyzetet az előző címke óta készült commitokból állítja össze (új funkciók, javítások, egyéb).
 
 ## Tudnivalók
 

@@ -14,10 +14,11 @@
 	<string>Paperboy</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- A verziót és a build-számot a scripts/build-app.sh írja be a git-címkéből. -->
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>0</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>hu</string>
 	<key>LSMinimumSystemVersion</key>
