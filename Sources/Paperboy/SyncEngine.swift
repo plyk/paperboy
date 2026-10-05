@@ -21,6 +21,8 @@ final class SyncEngine: ObservableObject {
         var editions = 0
         var articles = 0
         var error: String?
+        /// SSH-n feltöltve, de a tablet felülete még nem indult újra.
+        var restartPending = false
     }
 
     private struct Edition {
@@ -30,6 +32,8 @@ final class SyncEngine: ObservableObject {
 
     @Published private(set) var isRunning = false
     @Published private(set) var log: [LogLine] = []
+    /// Automatikus SSH-s szinkron után a tablet felületének újraindítása a felhasználó jóváhagyására vár.
+    @Published private(set) var restartPending = false
 
     private let store: FeedStore
     private let extractor = FullTextExtractor()
@@ -38,8 +42,14 @@ final class SyncEngine: ObservableObject {
     private var lastAutoSync: Date?
     private let autoSyncCooldown: TimeInterval = 10 * 60
 
+    private let notifications = NotificationHandler()
+
     init(store: FeedStore) {
         self.store = store
+        notifications.onRestartRequested = { [weak self] in
+            Task { await self?.restartTabletInterface() }
+        }
+        notifications.activate()
     }
 
     /// Volt-e ma már sikeres feltöltés (kézi vagy automatikus).
@@ -73,7 +83,14 @@ final class SyncEngine: ObservableObject {
         if let lastAutoSync, Date().timeIntervalSince(lastAutoSync) < autoSyncCooldown { return }
         lastAutoSync = Date()
 
-        let summary = await run(.upload)
+        let summary = await run(.upload, deferRestart: true)
+        // Az újraindításhoz jóváhagyás kell, ezért erről mindig szólunk.
+        if summary.restartPending {
+            Self.notify(title: "Friss hírek a tableten",
+                        body: "\(summary.editions) kiadás, \(summary.articles) cikk felkerült. A megjelenítésükhöz a tablet felülete pár másodpercre újraindul.",
+                        category: NotificationHandler.restartCategory)
+            return
+        }
         guard store.settings.notifyAfterAutoSync else { return }
         if let error = summary.error {
             Self.notify(title: "A szinkronizálás nem sikerült", body: error)
@@ -84,7 +101,8 @@ final class SyncEngine: ObservableObject {
     }
 
     @discardableResult
-    func run(_ mode: Mode) async -> Summary {
+    /// - Parameter deferRestart: SSH-n ne indítsa újra magától a tablet felületét (automatikus szinkron).
+    func run(_ mode: Mode, deferRestart: Bool = false) async -> Summary {
         guard !isRunning else { return Summary() }
         isRunning = true
         defer { isRunning = false }
@@ -108,7 +126,7 @@ final class SyncEngine: ObservableObject {
             guard !editions.isEmpty else {
                 note("Nincs új cikk.")
                 if let transport {
-                    try await finishUpload(transport)
+                    summary.restartPending = try await finishUpload(transport, deferRestart: deferRestart)
                     store.syncState.lastSync = Date()
                 }
                 return summary
@@ -155,7 +173,7 @@ final class SyncEngine: ObservableObject {
             }
 
             if let transport {
-                try await finishUpload(transport)
+                summary.restartPending = try await finishUpload(transport, deferRestart: deferRestart)
                 pruneHistory(today: day)
                 store.syncState.lastSync = now
                 note("Kész.")
@@ -169,7 +187,7 @@ final class SyncEngine: ObservableObject {
         return summary
     }
 
-    private static func notify(title: String, body: String) {
+    private static func notify(title: String, body: String, category: String? = nil) {
         // `swift run`-nál nincs alkalmazáscsomag, ott az értesítési központ nem használható.
         guard Bundle.main.bundleIdentifier != nil else { return }
         Task {
@@ -178,13 +196,58 @@ final class SyncEngine: ObservableObject {
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
+            if let category { content.categoryIdentifier = category }
             try? await center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
         }
     }
 
-    /// SSH-n a régi kiadások Kukába helyezése (ha be van kapcsolva), majd a feltöltés lezárása.
-    private func finishUpload(_ transport: TabletTransport) async throws {
-        if let ssh = transport as? RemarkableSSH, store.settings.trashOldEditions {
+    /// A feltöltés lezárása. SSH-n ez a régi kiadások Kukába helyezése és a felület újraindítása; ha
+    /// `deferRestart`, mindkettő a felhasználó jóváhagyásáig vár (futó felület mellett a dokumentumok adatait
+    /// sem módosítjuk, mert a tablet felülírhatná). Visszaadja, hogy az újraindítás függőben maradt-e.
+    private func finishUpload(_ transport: TabletTransport, deferRestart: Bool) async throws -> Bool {
+        guard let ssh = transport as? RemarkableSSH else {
+            try await transport.finish()
+            return false
+        }
+        if deferRestart {
+            guard ssh.hasPendingChanges else { return false }
+            restartPending = true
+            note("Az új kiadások a tableten vannak; a felület újraindítása után jelennek meg.")
+            return true
+        }
+        try await trashOldEditions(ssh)
+        if ssh.hasPendingChanges || restartPending {
+            note("A tablet felületének újraindítása…")
+            try await ssh.restartInterface()
+        }
+        restartPending = false
+        return false
+    }
+
+    /// A függőben lévő újraindítás végrehajtása (az értesítés gombjáról vagy a menüből).
+    func restartTabletInterface() async {
+        guard !isRunning else { return }
+        guard let ssh = store.settings.makeTransport() as? RemarkableSSH else {
+            restartPending = false
+            return
+        }
+        isRunning = true
+        defer { isRunning = false }
+        do {
+            guard await ssh.isReachable() else { throw ssh.unreachableError }
+            try await trashOldEditions(ssh)
+            note("A tablet felületének újraindítása…")
+            try await ssh.restartInterface()
+            restartPending = false
+            note("Kész, az új kiadások megjelentek a tableten.")
+        } catch {
+            note(error.localizedDescription, isError: true)
+            Self.notify(title: "A tablet felülete nem indult újra", body: error.localizedDescription)
+        }
+    }
+
+    private func trashOldEditions(_ ssh: RemarkableSSH) async throws {
+        if store.settings.trashOldEditions {
             let limit = Date().addingTimeInterval(-Double(store.settings.keepEditionsDays) * 86_400)
             let old = (store.syncState.createdDocuments ?? [:]).filter { $0.value < limit }.map(\.key)
             if !old.isEmpty {
@@ -194,8 +257,6 @@ final class SyncEngine: ObservableObject {
                 if result.annotated > 0 { note("\(result.annotated) régi kiadás maradt a helyén, mert jegyzet van benne.") }
             }
         }
-        if transport is RemarkableSSH { note("A tablet felületének frissítése…") }
-        try await transport.finish()
     }
 
     /// Lekéri az összes aktív hírforrást, és frissíti az állapotukat.

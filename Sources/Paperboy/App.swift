@@ -62,6 +62,12 @@ private struct MenuBarContent: View {
         } else if let status = sync.autoSyncStatus {
             Text(status)
         }
+        if sync.restartPending {
+            Divider()
+            Text("Új kiadások várnak megjelenítésre")
+            Button("Tablet felületének újraindítása") { Task { await sync.restartTabletInterface() } }
+                .disabled(sync.isRunning || !tablet.isConnected)
+        }
         Divider()
         Button("Szinkronizálás most") { Task { await sync.run(.upload) } }
             .disabled(sync.isRunning || !tablet.isConnected)

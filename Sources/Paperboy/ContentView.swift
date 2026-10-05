@@ -120,6 +120,14 @@ struct ContentView: View {
                 } ?? "Még nem volt szinkronizálás")
         }
         ToolbarItemGroup {
+            if sync.restartPending {
+                Button { Task { await sync.restartTabletInterface() } } label: {
+                    Label("Tablet felületének újraindítása", systemImage: "arrow.clockwise.circle")
+                }
+                .help("Az új kiadások a tableten vannak; a felület újraindítása (pár másodperc) után jelennek meg.")
+                .disabled(sync.isRunning || !tablet.isConnected)
+            }
+
             Button { addFeed() } label: {
                 Label("Új hírforrás", systemImage: "plus")
             }

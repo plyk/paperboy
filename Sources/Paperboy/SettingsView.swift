@@ -22,7 +22,7 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
                 Text(store.settings.transport == .usbWeb
                      ? "Egyszerű, jelszó nélküli mód USB-kábelen. A tableten be kell kapcsolni a Beállítások → Tárhely → USB web interface opciót."
-                     : "Közvetlen hozzáférés root jelszóval: a célmappát a Paperboy hozza létre, a dokumentumnevek .pdf nélkül jelennek meg, és Wi-Fi-n is működhet. Feltöltés után a tablet felülete pár másodpercre újraindul.")
+                     : "Közvetlen hozzáférés root jelszóval: a célmappát a Paperboy hozza létre, a dokumentumnevek .pdf nélkül jelennek meg, és Wi-Fi-n is működhet. Az új kiadások a tablet felületének újraindítása (pár másodperc) után jelennek meg: kézi szinkronizálásnál ez azonnal megtörténik, automatikusnál értesítésben kér jóváhagyást.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

@@ -88,6 +88,14 @@ final class RemarkableSSH: TabletTransport {
 
     func finish() async throws {
         guard needsRestart else { return }
+        try await restartInterface()
+    }
+
+    /// Van-e olyan változás a tableten, amely csak a felület újraindítása után látszik.
+    var hasPendingChanges: Bool { needsRestart }
+
+    /// A tablet felületének újraindítása (pár másodperc), hogy betöltse az új dokumentumokat.
+    func restartInterface() async throws {
         try await run(restartCommand)
         needsRestart = false
     }
